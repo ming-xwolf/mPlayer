@@ -187,14 +187,23 @@ struct AlbumCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(MusicConstants.grayDark)
-                    .aspectRatio(1, contentMode: .fit)
-                
-                // 模拟专辑封面
-                Image(systemName: "music.note")
-                    .font(.system(size: 50))
-                    .foregroundColor(MusicConstants.grayMedium)
+                // 使用真实的专辑封面
+                if let firstSong = album.songs.first {
+                    EnhancedAsyncArtworkView(
+                        song: firstSong,
+                        size: .custom(120),
+                        style: .card,
+                        showDownloadButton: false
+                    )
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(MusicConstants.grayDark)
+                        .aspectRatio(1, contentMode: .fit)
+                    
+                    Image(systemName: "music.note")
+                        .font(.system(size: 50))
+                        .foregroundColor(MusicConstants.grayMedium)
+                }
                 
                 // 播放按钮覆盖层
                 VStack {
@@ -240,14 +249,13 @@ struct SongRowView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // 专辑封面
-            RoundedRectangle(cornerRadius: 8)
-                .fill(MusicConstants.grayDark)
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Image(systemName: "music.note")
-                        .foregroundColor(MusicConstants.grayMedium)
-                )
+            // 专辑封面 - 使用持久化的专辑封面
+            EnhancedAsyncArtworkView(
+                song: song,
+                size: .small,
+                style: .rounded,
+                useThumbnail: true
+            )
             
             // 歌曲信息
             VStack(alignment: .leading, spacing: 2) {

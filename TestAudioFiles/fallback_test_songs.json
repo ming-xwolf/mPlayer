@@ -1,0 +1,207 @@
+{
+  "fallback_test_songs": [
+    {
+      "test_case": "第一级：正常专辑封面",
+      "songs": [
+        {
+          "title": "Shape of You",
+          "artist": "Ed Sheeran",
+          "album": "÷ (Divide)",
+          "duration": 233,
+          "filename": "shape_of_you.mp3",
+          "expected_source": "iTunes",
+          "expected_level": 1,
+          "description": "热门歌曲，应该能找到官方专辑封面"
+        },
+        {
+          "title": "Blinding Lights",
+          "artist": "The Weeknd",
+          "album": "After Hours",
+          "duration": 200,
+          "filename": "blinding_lights.mp3",
+          "expected_source": "iTunes",
+          "expected_level": 1,
+          "description": "流行歌曲，iTunes应该有专辑封面"
+        },
+        {
+          "title": "Watermelon Sugar",
+          "artist": "Harry Styles",
+          "album": "Fine Line",
+          "duration": 174,
+          "filename": "watermelon_sugar.mp3",
+          "expected_source": "iTunes",
+          "expected_level": 1,
+          "description": "知名艺术家的热门专辑"
+        }
+      ]
+    },
+    {
+      "test_case": "第二级：艺术家照片搜索",
+      "songs": [
+        {
+          "title": "Unknown Song",
+          "artist": "Taylor Swift",
+          "album": "Unknown Album XYZ",
+          "duration": 180,
+          "filename": "unknown_taylor.mp3",
+          "expected_source": "iTunes Artist",
+          "expected_level": 2,
+          "description": "知名艺术家但虚构专辑，应该找到艺术家照片"
+        },
+        {
+          "title": "Mystery Track",
+          "artist": "Adele",
+          "album": "Nonexistent Album 123",
+          "duration": 210,
+          "filename": "mystery_adele.mp3",
+          "expected_source": "iTunes Artist",
+          "expected_level": 2,
+          "description": "著名歌手的虚构专辑"
+        },
+        {
+          "title": "Fake Song",
+          "artist": "Bruno Mars",
+          "album": "Imaginary Album",
+          "duration": 195,
+          "filename": "fake_bruno.mp3",
+          "expected_source": "iTunes Artist",
+          "expected_level": 2,
+          "description": "流行艺术家的虚构作品"
+        }
+      ]
+    },
+    {
+      "test_case": "第三级：音乐艺术图片",
+      "songs": [
+        {
+          "title": "My Original Song",
+          "artist": "Unknown Artist 123",
+          "album": "Independent Album",
+          "duration": 220,
+          "filename": "original_unknown.mp3",
+          "expected_source": "Music Art",
+          "expected_level": 3,
+          "description": "不知名艺术家，应该使用音乐主题图片"
+        },
+        {
+          "title": "Indie Track",
+          "artist": "Local Band XYZ",
+          "album": "Demo Album",
+          "duration": 165,
+          "filename": "indie_local.mp3",
+          "expected_source": "Music Art",
+          "expected_level": 3,
+          "description": "本地乐队的作品"
+        },
+        {
+          "title": "Amateur Song",
+          "artist": "Bedroom Producer",
+          "album": "Home Studio",
+          "duration": 240,
+          "filename": "amateur_bedroom.mp3",
+          "expected_source": "Music Art",
+          "expected_level": 3,
+          "description": "业余音乐制作人"
+        }
+      ]
+    },
+    {
+      "test_case": "第四级：默认彩色封面",
+      "songs": [
+        {
+          "title": "XYZABC123",
+          "artist": "NONEXISTENT_ARTIST_999",
+          "album": "FAKE_ALBUM_XYZ",
+          "duration": 180,
+          "filename": "completely_fake.mp3",
+          "expected_source": "Default Color",
+          "expected_level": 4,
+          "description": "完全虚构的信息，应该使用默认彩色封面"
+        },
+        {
+          "title": "Random Title 456",
+          "artist": "Made Up Artist 789",
+          "album": "Fictional Album 101",
+          "duration": 200,
+          "filename": "random_made_up.mp3",
+          "expected_source": "Default Color",
+          "expected_level": 4,
+          "description": "随机生成的歌曲信息"
+        },
+        {
+          "title": "Test Song @@##",
+          "artist": "Invalid Artist $$%%",
+          "album": "Special Chars Album !!",
+          "duration": 150,
+          "filename": "special_chars.mp3",
+          "expected_source": "Default Color",
+          "expected_level": 4,
+          "description": "包含特殊字符的信息"
+        }
+      ]
+    },
+    {
+      "test_case": "边界条件测试",
+      "songs": [
+        {
+          "title": "",
+          "artist": "Empty Title Artist",
+          "album": "Empty Title Album",
+          "duration": 180,
+          "filename": "empty_title.mp3",
+          "expected_source": "Default Color",
+          "expected_level": 4,
+          "description": "空标题测试"
+        },
+        {
+          "title": "Very Long Song Title That Exceeds Normal Length Limits And Contains Many Words To Test How The System Handles Extremely Long Titles",
+          "artist": "Very Long Artist Name That Also Exceeds Normal Length",
+          "album": "Very Long Album Name With Many Words",
+          "duration": 300,
+          "filename": "very_long_names.mp3",
+          "expected_source": "Default Color",
+          "expected_level": 4,
+          "description": "超长名称测试"
+        },
+        {
+          "title": "中文歌曲",
+          "artist": "中文艺术家",
+          "album": "中文专辑",
+          "duration": 210,
+          "filename": "chinese_song.mp3",
+          "expected_source": "Default Color",
+          "expected_level": 4,
+          "description": "中文字符测试"
+        }
+      ]
+    }
+  ],
+  "test_instructions": {
+    "setup": [
+      "1. 清理现有的专辑封面缓存",
+      "2. 确保网络连接正常",
+      "3. 启动应用日志监控",
+      "4. 准备测试环境"
+    ],
+    "execution": [
+      "1. 按顺序添加每个测试用例的歌曲",
+      "2. 观察下载过程和日志输出",
+      "3. 验证降级策略是否按预期工作",
+      "4. 检查最终的封面来源和质量"
+    ],
+    "validation": [
+      "1. 确认所有歌曲都有封面",
+      "2. 验证不同级别的降级策略都被使用",
+      "3. 检查封面质量和视觉效果",
+      "4. 确认统计信息准确"
+    ]
+  },
+  "expected_results": {
+    "level_1_count": 3,
+    "level_2_count": 3,
+    "level_3_count": 3,
+    "level_4_count": 6,
+    "total_success_rate": "100%",
+    "performance_target": "< 10秒每首歌曲"
+  }
+} 

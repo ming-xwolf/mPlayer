@@ -50,6 +50,10 @@ struct ProfileView: View {
                             MenuRow(icon: "clock.fill", title: "播放历史", iconColor: MusicConstants.secondaryColor)
                         }
                         
+                        NavigationLink(destination: AlbumArtworkSettingsView()) {
+                            MenuRow(icon: "photo.fill", title: "专辑封面管理", iconColor: .purple)
+                        }
+                        
                         MenuRow(icon: "arrow.down.circle.fill", title: "已下载", iconColor: .green)
                         MenuRow(icon: "person.2.fill", title: "关注的艺术家", iconColor: .orange)
                     }

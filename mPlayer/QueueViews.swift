@@ -51,15 +51,13 @@ struct CurrentPlayingSection: View {
     var body: some View {
         VStack(spacing: 16) {
             HStack(spacing: 16) {
-                // 专辑封面
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(MusicConstants.grayDark)
-                    .frame(width: 60, height: 60)
-                    .overlay(
-                        Image(systemName: "music.note")
-                            .foregroundColor(MusicConstants.grayMedium)
-                            .font(.title2)
-                    )
+                // 专辑封面 - 使用持久化的专辑封面
+                EnhancedAsyncArtworkView(
+                    song: song,
+                    size: .medium,
+                    style: .rounded,
+                    useThumbnail: true
+                )
                 
                 // 歌曲信息
                 VStack(alignment: .leading, spacing: 4) {
@@ -177,15 +175,13 @@ struct QueueItemRow: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // 专辑封面
-            RoundedRectangle(cornerRadius: 6)
-                .fill(MusicConstants.grayDark)
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Image(systemName: "music.note")
-                        .foregroundColor(MusicConstants.grayMedium)
-                        .font(.title3)
-                )
+            // 专辑封面 - 使用持久化的专辑封面
+            EnhancedAsyncArtworkView(
+                song: queueItem.song,
+                size: .small,
+                style: .rounded,
+                useThumbnail: true
+            )
             
             // 歌曲信息
             VStack(alignment: .leading, spacing: 4) {
@@ -386,15 +382,13 @@ struct HistoryItemRow: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // 专辑封面
-            RoundedRectangle(cornerRadius: 6)
-                .fill(MusicConstants.grayDark)
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Image(systemName: "music.note")
-                        .foregroundColor(MusicConstants.grayMedium)
-                        .font(.title3)
-                )
+            // 专辑封面 - 使用持久化的专辑封面
+            EnhancedAsyncArtworkView(
+                song: historyItem.song,
+                size: .small,
+                style: .rounded,
+                useThumbnail: true
+            )
             
             // 歌曲信息
             VStack(alignment: .leading, spacing: 4) {

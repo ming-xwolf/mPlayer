@@ -1,0 +1,44 @@
+{
+  "test_songs": [
+    {
+      "title": "Shape of You",
+      "artist": "Ed Sheeran",
+      "album": "÷ (Divide)",
+      "duration": 233,
+      "filename": "shape_of_you.mp3",
+      "has_artwork": false
+    },
+    {
+      "title": "Blinding Lights",
+      "artist": "The Weeknd",
+      "album": "After Hours",
+      "duration": 200,
+      "filename": "blinding_lights.mp3",
+      "has_artwork": false
+    },
+    {
+      "title": "Watermelon Sugar",
+      "artist": "Harry Styles",
+      "album": "Fine Line",
+      "duration": 174,
+      "filename": "watermelon_sugar.mp3",
+      "has_artwork": false
+    },
+    {
+      "title": "Levitating",
+      "artist": "Dua Lipa",
+      "album": "Future Nostalgia",
+      "duration": 203,
+      "filename": "levitating.mp3",
+      "has_artwork": false
+    },
+    {
+      "title": "Good 4 U",
+      "artist": "Olivia Rodrigo",
+      "album": "SOUR",
+      "duration": 178,
+      "filename": "good_4_u.mp3",
+      "has_artwork": false
+    }
+  ]
+}

@@ -12,14 +12,12 @@ struct LibrarySongRow: View {
                 .foregroundColor(MusicConstants.grayMedium)
                 .frame(width: 20)
             
-            RoundedRectangle(cornerRadius: 6)
-                .fill(MusicConstants.grayDark)
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Image(systemName: "music.note")
-                        .foregroundColor(MusicConstants.grayMedium)
-                        .font(.caption)
-                )
+            EnhancedAsyncArtworkView(
+                song: song,
+                size: .small,
+                style: .rounded,
+                useThumbnail: true
+            )
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(song.title)
@@ -28,10 +26,18 @@ struct LibrarySongRow: View {
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
-                Text("\(song.artist) · \(song.album)")
-                    .font(.caption)
-                    .foregroundColor(MusicConstants.grayMedium)
-                    .lineLimit(1)
+                HStack {
+                    Text("\(song.artist) · \(song.album)")
+                        .font(.caption)
+                        .foregroundColor(MusicConstants.grayMedium)
+                        .lineLimit(1)
+                    
+                    if !AlbumArtworkPersistenceManager.shared.hasArtwork(for: song) {
+                        Image(systemName: "photo.badge.plus")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                }
             }
             
             Spacer()
@@ -55,6 +61,16 @@ struct LibrarySongRow: View {
                     }
                     
                     Divider()
+                    
+                    if AlbumArtworkDownloadService.shared.needsArtworkDownload(for: song) {
+                        Button(action: {
+                            AlbumArtworkManager.shared.downloadArtworkIfNeeded(for: song) { _ in }
+                        }) {
+                            Label("下载专辑封面", systemImage: "photo.badge.plus")
+                        }
+                        
+                        Divider()
+                    }
                     
                     Button(action: {
                         // TODO: 添加到播放列表功能

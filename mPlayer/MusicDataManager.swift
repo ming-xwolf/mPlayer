@@ -91,6 +91,10 @@ class MusicDataManager: ObservableObject {
         songs.append(song)
         saveSongs()
         updateAlbumsAndArtists()
+        
+        // 自动下载专辑封面
+        downloadArtworkIfNeeded(for: song)
+        
         print("✅ 添加歌曲: \(song.title)")
     }
     
@@ -98,11 +102,19 @@ class MusicDataManager: ObservableObject {
         songs.append(contentsOf: newSongs)
         saveSongs()
         updateAlbumsAndArtists()
+        
+        // 批量下载专辑封面
+        downloadArtworkForSongs(newSongs)
+        
         print("✅ 添加 \(newSongs.count) 首歌曲")
     }
     
     func removeSong(_ song: Song) {
         songs.removeAll { $0.id == song.id }
+        
+        // 删除对应的专辑封面
+        AlbumArtworkPersistenceManager.shared.removeArtwork(for: song)
+        
         saveSongs()
         updateAlbumsAndArtists()
         print("✅ 删除歌曲: \(song.title)")
@@ -324,5 +336,50 @@ class MusicDataManager: ObservableObject {
         } else {
             return "\(minutes)分钟"
         }
+    }
+    
+    // MARK: - 专辑封面管理
+    
+    /// 为单首歌曲下载专辑封面（如果需要）
+    private func downloadArtworkIfNeeded(for song: Song) {
+        guard AlbumArtworkDownloadService.shared.needsArtworkDownload(for: song) else {
+            return
+        }
+        
+        AlbumArtworkManager.shared.downloadArtworkIfNeeded(for: song) { [weak self] image in
+            if image != nil {
+                print("✅ 专辑封面下载完成: \(song.album)")
+            }
+        }
+    }
+    
+    /// 批量下载专辑封面
+    private func downloadArtworkForSongs(_ songs: [Song]) {
+        let songsNeedingArtwork = songs.filter { 
+            AlbumArtworkDownloadService.shared.needsArtworkDownload(for: $0) 
+        }
+        
+        guard !songsNeedingArtwork.isEmpty else { return }
+        
+        print("🎨 开始为 \(songsNeedingArtwork.count) 首歌曲下载专辑封面")
+        
+        // 延迟执行，避免阻塞UI
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 1.0) {
+            AlbumArtworkDownloadService.shared.downloadArtworkForSongs(songsNeedingArtwork) { successCount, failureCount in
+                DispatchQueue.main.async {
+                    print("✅ 专辑封面批量下载完成: 成功 \(successCount)，失败 \(failureCount)")
+                }
+            }
+        }
+    }
+    
+    /// 手动触发所有歌曲的专辑封面下载
+    func downloadAllArtworks(completion: @escaping (Int, Int) -> Void) {
+        AlbumArtworkManager.shared.downloadArtworkForAllSongs(completion: completion)
+    }
+    
+    /// 清理未使用的专辑封面
+    func cleanupUnusedArtworks() {
+        AlbumArtworkManager.shared.cleanupUnusedArtworks()
     }
 } 
