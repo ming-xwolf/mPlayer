@@ -34,6 +34,13 @@ struct MiniPlayerView: View {
             
             // 播放控制按钮
             HStack(spacing: 16) {
+                // 随机播放指示器
+                if musicPlayer.isShuffled {
+                    Image(systemName: "shuffle")
+                        .font(.caption)
+                        .foregroundColor(MusicConstants.primaryColor)
+                }
+                
                 Button(action: {
                     // 切换喜欢状态
                 }) {
@@ -68,9 +75,23 @@ struct MiniPlayerView: View {
 // MARK: - 全屏播放器视图
 struct ExpandedPlayerView: View {
     @StateObject private var musicPlayer = MusicPlayerManager.shared
+    @StateObject private var lyricsManager = LyricsManager.shared
     @Binding var isPresented: Bool
     @State private var isDraggingProgress = false
     @State private var tempProgress: Double = 0
+    @State private var selectedTab: PlayerTab = .artwork
+    
+    enum PlayerTab: String, CaseIterable {
+        case artwork = "专辑封面"
+        case lyrics = "歌词"
+        
+        var iconName: String {
+            switch self {
+            case .artwork: return "music.note"
+            case .lyrics: return "text.quote"
+            }
+        }
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -92,72 +113,115 @@ struct ExpandedPlayerView: View {
                     
                     Spacer()
                     
-                    Text("正在播放")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Button(action: {}) {
-                        Image(systemName: "ellipsis")
+                    Button(action: {
+                        lyricsManager.toggleLyricsVisibility()
+                    }) {
+                        Image(systemName: lyricsManager.hasLyrics(for: musicPlayer.currentSong?.id ?? UUID()) ? "text.quote.fill" : "text.quote")
                             .font(.title2)
-                            .foregroundColor(.white)
+                            .foregroundColor(lyricsManager.hasLyrics(for: musicPlayer.currentSong?.id ?? UUID()) ? MusicConstants.primaryColor : MusicConstants.grayMedium)
                             .frame(width: 44, height: 44)
                             .background(Color.clear)
                             .contentShape(Rectangle())
                     }
                 }
                 .padding(.horizontal)
-                .padding(.top, 8)
+                .padding(.top, 20)
                 
-                Spacer()
-                
-                // 专辑封面
-                VStack(spacing: 32) {
-                    ZStack {
-                        Circle()
-                            .fill(MusicConstants.grayDark)
-                            .frame(width: min(geometry.size.width * 0.8, 320), height: min(geometry.size.width * 0.8, 320))
-                        
-                        // 旋转动画
-                        Image(systemName: "music.note")
-                            .font(.system(size: 80))
-                            .foregroundColor(MusicConstants.grayMedium)
-                            .rotationEffect(.degrees(musicPlayer.playbackState == .playing ? 360 : 0))
-                            .animation(
-                                musicPlayer.playbackState == .playing ?
-                                Animation.linear(duration: 20).repeatForever(autoreverses: false) :
-                                .default,
-                                value: musicPlayer.playbackState
-                            )
-                        
-                        // 中心圆点
-                        Circle()
-                            .fill(MusicConstants.darkBackground)
-                            .frame(width: 20, height: 20)
-                            .overlay(
-                                Circle()
-                                    .stroke(.white, lineWidth: 4)
-                            )
-                    }
-                    
-                    // 歌曲信息
-                    VStack(spacing: 8) {
-                        Text(musicPlayer.currentSong?.title ?? "")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                        
-                        Text(musicPlayer.currentSong?.artist ?? "")
-                            .font(.title3)
-                            .foregroundColor(MusicConstants.grayMedium)
-                            .multilineTextAlignment(.center)
+                // 标签页切换 - 移到安全区域内
+                HStack(spacing: 0) {
+                    ForEach(PlayerTab.allCases, id: \.self) { tab in
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                selectedTab = tab
+                            }
+                        }) {
+                            VStack(spacing: 4) {
+                                Image(systemName: tab.iconName)
+                                    .font(.caption)
+                                Text(tab.rawValue)
+                                    .font(.caption2)
+                            }
+                            .foregroundColor(selectedTab == tab ? MusicConstants.primaryColor : MusicConstants.grayMedium)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                        }
                     }
                 }
+                .background(MusicConstants.grayDark.opacity(0.5))
+                .cornerRadius(20)
+                .padding(.top, 16)
                 
-                Spacer()
+                // 主要内容区域
+                TabView(selection: $selectedTab) {
+                    // 专辑封面页面
+                    VStack(spacing: 24) {
+                        Spacer()
+                            .frame(minHeight: 20, maxHeight: 40)
+                        
+                        ZStack {
+                            Circle()
+                                .fill(MusicConstants.grayDark)
+                                .frame(width: min(geometry.size.width * 0.75, 300), height: min(geometry.size.width * 0.75, 300))
+                            
+                            // 旋转动画
+                            Image(systemName: "music.note")
+                                .font(.system(size: 80))
+                                .foregroundColor(MusicConstants.grayMedium)
+                                .rotationEffect(.degrees(musicPlayer.playbackState == .playing ? 360 : 0))
+                                .animation(
+                                    musicPlayer.playbackState == .playing ?
+                                    Animation.linear(duration: 20).repeatForever(autoreverses: false) :
+                                    .default,
+                                    value: musicPlayer.playbackState
+                                )
+                            
+                            // 中心圆点
+                            Circle()
+                                .fill(MusicConstants.darkBackground)
+                                .frame(width: 20, height: 20)
+                                .overlay(
+                                    Circle()
+                                        .stroke(.white, lineWidth: 4)
+                                )
+                        }
+                        
+                        // 歌曲信息
+                        VStack(spacing: 8) {
+                            Text(musicPlayer.currentSong?.title ?? "")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                            
+                            Text(musicPlayer.currentSong?.artist ?? "")
+                                .font(.body)
+                                .foregroundColor(MusicConstants.grayMedium)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        // 迷你歌词显示
+                        MiniLyricsView()
+                        
+                        Spacer()
+                            .frame(minHeight: 20, maxHeight: 30)
+                    }
+                    .tag(PlayerTab.artwork)
+                    
+                    // 歌词页面
+                    VStack(spacing: 0) {
+                        LyricsView()
+                        
+                        // 歌词控制栏
+                        if lyricsManager.currentLyrics != nil {
+                            LyricsControlBar()
+                        }
+                    }
+                    .tag(PlayerTab.lyrics)
+                }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 
                 // 播放进度
                 VStack(spacing: 16) {
@@ -237,13 +301,13 @@ struct ExpandedPlayerView: View {
                 }
                 .padding(.horizontal, 32)
                 
-                Spacer()
-                
                 // 底部附加功能
-                VStack(spacing: 20) {
+                VStack(spacing: 16) {
                     // 功能按钮
                     HStack(spacing: 40) {
-                        Button(action: {}) {
+                        Button(action: {
+                            musicPlayer.showingQueue = true
+                        }) {
                             Image(systemName: "list.bullet")
                                 .font(.title2)
                                 .foregroundColor(MusicConstants.grayMedium)
@@ -286,11 +350,15 @@ struct ExpandedPlayerView: View {
                     }
                     .padding(.horizontal, 32)
                 }
-                .padding(.bottom, 50)
+                .padding(.bottom, 30)
             }
         }
         .background(MusicConstants.darkBackground)
-        .ignoresSafeArea()
+        .ignoresSafeArea(.all, edges: [.bottom])
+        .safeAreaInset(edge: .top) {
+            // 为顶部安全区域添加透明间距
+            Color.clear.frame(height: 0)
+        }
         .gesture(
             DragGesture()
                 .onEnded { value in
@@ -302,6 +370,9 @@ struct ExpandedPlayerView: View {
                     }
                 }
         )
+        .sheet(isPresented: $musicPlayer.showingQueue) {
+            PlayQueueView(isPresented: $musicPlayer.showingQueue)
+        }
     }
 }
 

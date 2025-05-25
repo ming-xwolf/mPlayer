@@ -162,7 +162,7 @@ struct HomeView: View {
                             .padding(.horizontal)
                         
                         LazyVStack(spacing: 8) {
-                            ForEach(dataManager.songs.prefix(5)) { song in
+                            ForEach(musicPlayer.getRecentlyPlayed(limit: 5)) { song in
                                 SongRowView(song: song)
                                     .onTapGesture {
                                         musicPlayer.playSong(song, from: dataManager.songs)

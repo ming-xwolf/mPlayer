@@ -41,7 +41,27 @@ struct LibrarySongRow: View {
                     .font(.caption)
                     .foregroundColor(MusicConstants.grayMedium)
                 
-                Button(action: {}) {
+                Menu {
+                    Button(action: {
+                        MusicPlayerManager.shared.addToQueue(song, source: .user)
+                    }) {
+                        Label("添加到队列", systemImage: "text.line.first.and.arrowtriangle.forward")
+                    }
+                    
+                    Button(action: {
+                        MusicPlayerManager.shared.addToQueueNext(song, source: .user)
+                    }) {
+                        Label("下一首播放", systemImage: "text.line.first.and.arrowtriangle.forward")
+                    }
+                    
+                    Divider()
+                    
+                    Button(action: {
+                        // TODO: 添加到播放列表功能
+                    }) {
+                        Label("添加到播放列表", systemImage: "plus")
+                    }
+                } label: {
                     Image(systemName: "ellipsis")
                         .foregroundColor(MusicConstants.grayMedium)
                 }

@@ -4,6 +4,7 @@ import SwiftUI
 struct ProfileView: View {
     @StateObject private var musicPlayer = MusicPlayerManager.shared
     @StateObject private var dataManager = MusicDataManager.shared
+    @State private var showingPlayHistory = false
     
     var body: some View {
         NavigationView {
@@ -42,7 +43,13 @@ struct ProfileView: View {
                     // 功能菜单
                     VStack(spacing: 16) {
                         MenuRow(icon: "heart.fill", title: "我喜欢的音乐", iconColor: MusicConstants.primaryColor)
-                        MenuRow(icon: "clock.fill", title: "最近播放", iconColor: MusicConstants.secondaryColor)
+                        
+                        Button(action: {
+                            showingPlayHistory = true
+                        }) {
+                            MenuRow(icon: "clock.fill", title: "播放历史", iconColor: MusicConstants.secondaryColor)
+                        }
+                        
                         MenuRow(icon: "arrow.down.circle.fill", title: "已下载", iconColor: .green)
                         MenuRow(icon: "person.2.fill", title: "关注的艺术家", iconColor: .orange)
                     }
@@ -65,6 +72,9 @@ struct ProfileView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
             #endif
+        }
+        .sheet(isPresented: $showingPlayHistory) {
+            PlayHistoryView()
         }
     }
 }

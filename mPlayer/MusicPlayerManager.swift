@@ -17,9 +17,19 @@ class MusicPlayerManager: NSObject, ObservableObject {
     @Published var playlist: [Song] = []
     @Published var currentIndex: Int = 0
     
+    // MARK: - 播放队列和历史
+    @Published var playQueue: [QueueItem] = [] // 播放队列
+    @Published var playHistory: [PlayHistoryItem] = [] // 播放历史
+    @Published var showingQueue = false // 是否显示队列界面
+    
     // MARK: - Private Properties
     private var audioPlayer: AVAudioPlayer?
     private var timer: Timer?
+    private var originalPlaylist: [Song] = [] // 保存原始播放列表
+    private var shuffledIndices: [Int] = [] // 随机播放的索引序列
+    private var shuffleIndex: Int = 0 // 当前在随机序列中的位置
+    private var currentPlayStartTime: Date? // 当前歌曲开始播放的时间
+    private var totalPlayTime: TimeInterval = 0 // 当前歌曲累计播放时间
     
     // MARK: - Singleton
     static let shared = MusicPlayerManager()
@@ -27,6 +37,7 @@ class MusicPlayerManager: NSObject, ObservableObject {
     override init() {
         super.init()
         setupAudioSession()
+        loadPlayHistory()
     }
     
     // MARK: - Audio Session Setup
@@ -47,11 +58,13 @@ class MusicPlayerManager: NSObject, ObservableObject {
             player.play()
             playbackState = .playing
             startTimer()
+            recordPlayStart()
             print("▶️ 播放音频")
         } else {
             // 如果没有音频播放器，使用模拟播放
             playbackState = .playing
             startTimer()
+            recordPlayStart()
             print("▶️ 模拟播放")
         }
     }
@@ -61,10 +74,12 @@ class MusicPlayerManager: NSObject, ObservableObject {
             player.pause()
             playbackState = .paused
             stopTimer()
+            recordPlayPause()
             print("⏸️ 暂停音频")
         } else {
             playbackState = .paused
             stopTimer()
+            recordPlayPause()
             print("⏸️ 模拟暂停")
         }
     }
@@ -100,8 +115,15 @@ class MusicPlayerManager: NSObject, ObservableObject {
         
         if !playlist.isEmpty {
             self.playlist = playlist
+            self.originalPlaylist = playlist // 保存原始播放列表
+            
             if let index = playlist.firstIndex(where: { $0.id == song.id }) {
                 currentIndex = index
+                
+                // 如果开启了随机播放，重新生成随机序列
+                if isShuffled {
+                    generateShuffleSequence(startingWith: index)
+                }
             }
         }
         
@@ -197,11 +219,43 @@ class MusicPlayerManager: NSObject, ObservableObject {
     func playNext() {
         guard !playlist.isEmpty else { return }
         
-        switch repeatMode {
-        case .one:
+        if repeatMode == .one {
             // 单曲循环，重新播放当前歌曲
             seek(to: 0)
             play()
+            return
+        }
+        
+        if isShuffled {
+            // 随机播放模式
+            playNextShuffled()
+        } else {
+            // 顺序播放模式
+            playNextSequential()
+        }
+    }
+    
+    func playPrevious() {
+        guard !playlist.isEmpty else { return }
+        
+        if currentTime > 3.0 {
+            // 如果已播放超过3秒，重新播放当前歌曲
+            seek(to: 0)
+            return
+        }
+        
+        if isShuffled {
+            // 随机播放模式
+            playPreviousShuffled()
+        } else {
+            // 顺序播放模式
+            playPreviousSequential()
+        }
+    }
+    
+    // MARK: - 顺序播放控制
+    private func playNextSequential() {
+        switch repeatMode {
         case .all:
             // 列表循环
             currentIndex = (currentIndex + 1) % playlist.count
@@ -214,20 +268,55 @@ class MusicPlayerManager: NSObject, ObservableObject {
             } else {
                 stop()
             }
+        case .one:
+            // 这种情况在上面已经处理
+            break
         }
     }
     
-    func playPrevious() {
-        guard !playlist.isEmpty else { return }
-        
-        if currentTime > 3.0 {
-            // 如果已播放超过3秒，重新播放当前歌曲
-            seek(to: 0)
-        } else {
-            // 播放上一首
-            currentIndex = currentIndex > 0 ? currentIndex - 1 : playlist.count - 1
-            playSong(playlist[currentIndex], from: playlist)
+    private func playPreviousSequential() {
+        currentIndex = currentIndex > 0 ? currentIndex - 1 : playlist.count - 1
+        playSong(playlist[currentIndex], from: playlist)
+    }
+    
+    // MARK: - 随机播放控制
+    private func playNextShuffled() {
+        guard !shuffledIndices.isEmpty else {
+            generateShuffleSequence()
+            return
         }
+        
+        switch repeatMode {
+        case .all:
+            // 列表循环 - 移动到下一个随机索引
+            shuffleIndex = (shuffleIndex + 1) % shuffledIndices.count
+            currentIndex = shuffledIndices[shuffleIndex]
+            playSong(playlist[currentIndex], from: playlist)
+        case .off:
+            // 不循环 - 如果还有下一首就播放，否则停止
+            if shuffleIndex < shuffledIndices.count - 1 {
+                shuffleIndex += 1
+                currentIndex = shuffledIndices[shuffleIndex]
+                playSong(playlist[currentIndex], from: playlist)
+            } else {
+                stop()
+            }
+        case .one:
+            // 这种情况在上面已经处理
+            break
+        }
+    }
+    
+    private func playPreviousShuffled() {
+        guard !shuffledIndices.isEmpty else {
+            generateShuffleSequence()
+            return
+        }
+        
+        // 移动到上一个随机索引
+        shuffleIndex = shuffleIndex > 0 ? shuffleIndex - 1 : shuffledIndices.count - 1
+        currentIndex = shuffledIndices[shuffleIndex]
+        playSong(playlist[currentIndex], from: playlist)
     }
     
     // MARK: - 播放位置控制
@@ -260,16 +349,72 @@ class MusicPlayerManager: NSObject, ObservableObject {
     
     func toggleShuffle() {
         isShuffled.toggle()
+        
         if isShuffled {
-            shufflePlaylist()
+            // 开启随机播放 - 生成随机序列
+            generateShuffleSequence(startingWith: currentIndex)
+            print("🔀 开启随机播放")
+        } else {
+            // 关闭随机播放 - 清除随机序列
+            shuffledIndices.removeAll()
+            shuffleIndex = 0
+            print("📋 关闭随机播放，恢复顺序播放")
         }
     }
     
-    private func shufflePlaylist() {
-        guard let currentSong = currentSong else { return }
-        playlist.shuffle()
-        if let newIndex = playlist.firstIndex(where: { $0.id == currentSong.id }) {
-            currentIndex = newIndex
+    // MARK: - 随机播放序列管理
+    private func generateShuffleSequence(startingWith currentIdx: Int? = nil) {
+        guard !playlist.isEmpty else { return }
+        
+        // 生成所有索引
+        shuffledIndices = Array(0..<playlist.count)
+        
+        // 随机打乱
+        shuffledIndices.shuffle()
+        
+        // 如果指定了当前歌曲索引，确保它在序列的第一位
+        if let currentIdx = currentIdx,
+           let shuffledPosition = shuffledIndices.firstIndex(of: currentIdx) {
+            shuffledIndices.swapAt(0, shuffledPosition)
+            shuffleIndex = 0
+        } else {
+            shuffleIndex = 0
+        }
+        
+        print("🔀 生成随机播放序列: \(shuffledIndices.prefix(5))...")
+    }
+    
+    // 获取下一首歌曲（用于预览，不改变播放状态）
+    func getNextSong() -> Song? {
+        guard !playlist.isEmpty else { return nil }
+        
+        if repeatMode == .one {
+            return currentSong
+        }
+        
+        if isShuffled {
+            guard !shuffledIndices.isEmpty else { return nil }
+            let nextShuffleIndex = (shuffleIndex + 1) % shuffledIndices.count
+            let nextIndex = shuffledIndices[nextShuffleIndex]
+            return playlist[nextIndex]
+        } else {
+            let nextIndex = (currentIndex + 1) % playlist.count
+            return playlist[nextIndex]
+        }
+    }
+    
+    // 获取上一首歌曲（用于预览，不改变播放状态）
+    func getPreviousSong() -> Song? {
+        guard !playlist.isEmpty else { return nil }
+        
+        if isShuffled {
+            guard !shuffledIndices.isEmpty else { return nil }
+            let prevShuffleIndex = shuffleIndex > 0 ? shuffleIndex - 1 : shuffledIndices.count - 1
+            let prevIndex = shuffledIndices[prevShuffleIndex]
+            return playlist[prevIndex]
+        } else {
+            let prevIndex = currentIndex > 0 ? currentIndex - 1 : playlist.count - 1
+            return playlist[prevIndex]
         }
     }
     
@@ -299,9 +444,12 @@ class MusicPlayerManager: NSObject, ObservableObject {
                 playbackState = .stopped
                 stopTimer()
                 
+                // 记录播放完成
+                recordPlayCompletion()
+                
                 // 自动播放下一首
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.playNext()
+                    self.playNextWithQueue()
                 }
             }
         } else {
@@ -314,9 +462,12 @@ class MusicPlayerManager: NSObject, ObservableObject {
                 playbackState = .stopped
                 stopTimer()
                 
+                // 记录播放完成
+                recordPlayCompletion()
+                
                 // 自动播放下一首
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.playNext()
+                    self.playNextWithQueue()
                 }
             }
         }
@@ -337,6 +488,160 @@ class MusicPlayerManager: NSObject, ObservableObject {
     
     deinit {
         stopTimer()
+        savePlayHistory()
+    }
+    
+    // MARK: - 播放队列管理
+    func addToQueue(_ song: Song, source: QueueSource = .user) {
+        let queueItem = QueueItem(song: song, source: source)
+        playQueue.append(queueItem)
+        print("➕ 添加到播放队列: \(song.title)")
+    }
+    
+    func addToQueueNext(_ song: Song, source: QueueSource = .user) {
+        let queueItem = QueueItem(song: song, source: source)
+        playQueue.insert(queueItem, at: 0)
+        print("⏭️ 添加到队列下一首: \(song.title)")
+    }
+    
+    func removeFromQueue(_ queueItem: QueueItem) {
+        playQueue.removeAll { $0.id == queueItem.id }
+        print("➖ 从播放队列移除: \(queueItem.song.title)")
+    }
+    
+    func clearQueue() {
+        playQueue.removeAll()
+        print("🗑️ 清空播放队列")
+    }
+    
+    func moveQueueItem(from source: IndexSet, to destination: Int) {
+        playQueue.move(fromOffsets: source, toOffset: destination)
+        print("🔄 调整播放队列顺序")
+    }
+    
+    func playFromQueue(_ queueItem: QueueItem) {
+        // 播放队列中的歌曲
+        playSong(queueItem.song, from: [queueItem.song])
+        // 从队列中移除已播放的歌曲
+        removeFromQueue(queueItem)
+    }
+    
+    func playNextFromQueue() {
+        guard let nextItem = playQueue.first else {
+            // 队列为空，继续正常的下一首逻辑
+            playNext()
+            return
+        }
+        
+        // 播放队列中的下一首
+        playFromQueue(nextItem)
+    }
+    
+    // MARK: - 播放历史管理
+    private func loadPlayHistory() {
+        let userDefaults = UserDefaults.standard
+        if let data = userDefaults.data(forKey: "PlayHistory"),
+           let history = try? JSONDecoder().decode([PlayHistoryItem].self, from: data) {
+            playHistory = history
+            print("✅ 加载播放历史: \(history.count) 条记录")
+        } else {
+            playHistory = []
+            print("ℹ️ 未找到播放历史数据")
+        }
+    }
+    
+    private func savePlayHistory() {
+        let userDefaults = UserDefaults.standard
+        if let encoded = try? JSONEncoder().encode(playHistory) {
+            userDefaults.set(encoded, forKey: "PlayHistory")
+            print("✅ 保存播放历史: \(playHistory.count) 条记录")
+        } else {
+            print("❌ 播放历史保存失败")
+        }
+    }
+    
+    private func recordPlayStart() {
+        currentPlayStartTime = Date()
+        totalPlayTime = 0
+    }
+    
+    private func recordPlayPause() {
+        guard let startTime = currentPlayStartTime else { return }
+        let sessionTime = Date().timeIntervalSince(startTime)
+        totalPlayTime += sessionTime
+        currentPlayStartTime = nil
+    }
+    
+    private func recordPlayCompletion() {
+        guard let song = currentSong else { return }
+        
+        // 如果正在播放，先记录当前会话时间
+        if let startTime = currentPlayStartTime {
+            let sessionTime = Date().timeIntervalSince(startTime)
+            totalPlayTime += sessionTime
+        }
+        
+        let completionPercentage = duration > 0 ? totalPlayTime / duration : 0
+        
+        let historyItem = PlayHistoryItem(
+            song: song,
+            playDuration: totalPlayTime,
+            completionPercentage: min(completionPercentage, 1.0)
+        )
+        
+        // 添加到历史记录
+        playHistory.insert(historyItem, at: 0)
+        
+        // 限制历史记录数量（保留最近1000条）
+        if playHistory.count > 1000 {
+            playHistory = Array(playHistory.prefix(1000))
+        }
+        
+        // 保存历史记录
+        savePlayHistory()
+        
+        // 重置计时器
+        currentPlayStartTime = nil
+        totalPlayTime = 0
+        
+        print("📊 记录播放历史: \(song.title) - 播放时长: \(Int(totalPlayTime))秒, 完成度: \(Int(completionPercentage * 100))%")
+    }
+    
+    func getRecentlyPlayed(limit: Int = 20) -> [Song] {
+        return Array(playHistory.prefix(limit).map { $0.song })
+    }
+    
+    func getMostPlayed(limit: Int = 20) -> [Song] {
+        // 统计每首歌的播放次数
+        let songPlayCounts = Dictionary(grouping: playHistory) { $0.song.id }
+            .mapValues { $0.count }
+        
+        // 按播放次数排序
+        let sortedSongs = songPlayCounts.sorted { $0.value > $1.value }
+        
+        // 获取对应的歌曲对象
+        let mostPlayedSongs = sortedSongs.prefix(limit).compactMap { (songId, _) in
+            playHistory.first { $0.song.id == songId }?.song
+        }
+        
+        return mostPlayedSongs
+    }
+    
+    func clearPlayHistory() {
+        playHistory.removeAll()
+        savePlayHistory()
+        print("🗑️ 清空播放历史")
+    }
+    
+    // MARK: - 队列相关的播放逻辑修改
+    private func playNextWithQueue() {
+        // 优先播放队列中的歌曲
+        if !playQueue.isEmpty {
+            playNextFromQueue()
+        } else {
+            // 队列为空，使用原有逻辑
+            playNext()
+        }
     }
 }
 
