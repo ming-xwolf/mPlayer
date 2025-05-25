@@ -1,0 +1,103 @@
+# Cursor IDE ignore file
+# Files and directories that Cursor should not index
+
+# Xcode build artifacts
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Module cache
+*.swiftmodule
+*.pcm
+ModuleCache.noindex/
+
+# Index files
+Index.noindex/
+*.noindex/
+
+# Simulator and device logs
+*.log
+*.crash
+
+# Archive and package files
+*.ipa
+*.dSYM.zip
+*.dSYM/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
+
+# System files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Documentation build
+docs/_build/
+*.docset/
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Large media files (optional - uncomment if needed)
+# *.mov
+# *.mp4
+# *.avi
+# *.mp3
+# *.wav
+# *.m4a
+
+# Dependencies (if using package managers)
+Pods/
+Carthage/Build/
+.accio/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Code coverage
+*.gcov
+*.gcda
+*.gcno
+coverage/
+
+# Profiling data
+*.profdata
+
+# Test results
+TestResults/
+test-results/
+
+# Generated files
+GeneratedAssetSymbols.swift
+
+# Large binary files
+*.framework
+*.a
+*.dylib
+
+# Localization
+*.strings.bak
+*.xliff.bak
