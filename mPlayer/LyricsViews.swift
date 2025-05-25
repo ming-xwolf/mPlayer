@@ -217,6 +217,8 @@ struct LyricLineView: View {
 // MARK: - 无歌词视图
 struct NoLyricsView: View {
     @StateObject private var musicPlayer = MusicPlayerManager.shared
+    @StateObject private var lyricsManager = LyricsManager.shared
+    @StateObject private var downloadService = LyricsDownloadService.shared
     
     var body: some View {
         VStack(spacing: 20) {
@@ -237,11 +239,77 @@ struct NoLyricsView: View {
                         .font(.body)
                         .foregroundColor(MusicConstants.grayMedium)
                         .multilineTextAlignment(.center)
+                    
+                    Text("艺术家：\(song.artist)")
+                        .font(.caption)
+                        .foregroundColor(MusicConstants.grayMedium)
+                        .multilineTextAlignment(.center)
                 } else {
                     Text("请选择一首歌曲开始播放")
                         .font(.body)
                         .foregroundColor(MusicConstants.grayMedium)
                         .multilineTextAlignment(.center)
+                }
+                
+                // 显示下载错误信息
+                if let error = downloadService.lastError {
+                    Text("下载失败：\(error)")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 8)
+                }
+            }
+            
+            // 下载歌词按钮
+            if let song = musicPlayer.currentSong {
+                VStack(spacing: 12) {
+                    if downloadService.isDownloading {
+                        VStack(spacing: 8) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: MusicConstants.primaryColor))
+                            
+                            Text("正在搜索歌词...")
+                                .font(.caption)
+                                .foregroundColor(MusicConstants.grayMedium)
+                            
+                            if downloadService.downloadProgress > 0 {
+                                ProgressView(value: downloadService.downloadProgress)
+                                    .progressViewStyle(LinearProgressViewStyle(tint: MusicConstants.primaryColor))
+                                    .frame(width: 200)
+                            }
+                        }
+                    } else {
+                        Button(action: {
+                            lyricsManager.reloadLyrics(for: song, forceOnlineDownload: true)
+                        }) {
+                            HStack {
+                                Image(systemName: "icloud.and.arrow.down")
+                                Text("在线搜索歌词")
+                            }
+                            .font(.body)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(MusicConstants.primaryColor)
+                            .cornerRadius(25)
+                        }
+                        
+                        Button(action: {
+                            lyricsManager.reloadLyrics(for: song, forceOnlineDownload: false)
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.clockwise")
+                                Text("重新加载本地歌词")
+                            }
+                            .font(.caption)
+                            .foregroundColor(MusicConstants.grayMedium)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(MusicConstants.grayDark)
+                            .cornerRadius(20)
+                        }
+                    }
                 }
             }
             
@@ -254,6 +322,9 @@ struct NoLyricsView: View {
 // MARK: - 歌词控制栏
 struct LyricsControlBar: View {
     @StateObject private var lyricsManager = LyricsManager.shared
+    @StateObject private var musicPlayer = MusicPlayerManager.shared
+    @StateObject private var downloadService = LyricsDownloadService.shared
+    @State private var showReloadOptions = false
     
     var body: some View {
         HStack(spacing: 20) {
@@ -268,6 +339,49 @@ struct LyricsControlBar: View {
                         .font(.caption2)
                 }
                 .foregroundColor(MusicConstants.primaryColor)
+            }
+            
+            Spacer()
+            
+            // 重新加载歌词
+            Button(action: {
+                showReloadOptions = true
+            }) {
+                VStack(spacing: 4) {
+                    ZStack {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.title3)
+                        
+                        if downloadService.isDownloading {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                                .progressViewStyle(CircularProgressViewStyle(tint: MusicConstants.primaryColor))
+                        }
+                    }
+                    Text("重载")
+                        .font(.caption2)
+                }
+                .foregroundColor(downloadService.isDownloading ? MusicConstants.grayMedium : MusicConstants.primaryColor)
+            }
+            .disabled(downloadService.isDownloading || musicPlayer.currentSong == nil)
+            .actionSheet(isPresented: $showReloadOptions) {
+                ActionSheet(
+                    title: Text("重新加载歌词"),
+                    message: Text("选择加载方式"),
+                    buttons: [
+                        .default(Text("从本地重新加载")) {
+                            if let song = musicPlayer.currentSong {
+                                lyricsManager.reloadLyrics(for: song, forceOnlineDownload: false)
+                            }
+                        },
+                        .default(Text("在线下载歌词")) {
+                            if let song = musicPlayer.currentSong {
+                                lyricsManager.reloadLyrics(for: song, forceOnlineDownload: true)
+                            }
+                        },
+                        .cancel(Text("取消"))
+                    ]
+                )
             }
             
             Spacer()

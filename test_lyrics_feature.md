@@ -103,8 +103,9 @@ mPlayer/
 ├── Models.swift              # 歌词相关数据模型
 ├── LyricsManager.swift       # 歌词管理器
 ├── LyricsViews.swift         # 歌词显示组件
-├── PlayerViews.swift         # 播放器界面（已更新布局）
-└── 示例歌词.lrc              # 示例LRC歌词文件
+├── LyricsDownloadService.swift # 歌词下载服务
+├── LyricsSearchAPI.swift     # 歌词搜索API
+└── PlayerViews.swift         # 播放器界面（已更新布局）
 ```
 
 ## 🧪 测试用例

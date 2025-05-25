@@ -16,6 +16,7 @@ class LyricsManager: ObservableObject {
     // MARK: - Private Properties
     private let userDefaults = UserDefaults.standard
     private let lyricsKey = "SavedLyrics"
+    private let downloadService = LyricsDownloadService.shared
     
     // MARK: - Singleton
     static let shared = LyricsManager()
@@ -90,11 +91,39 @@ class LyricsManager: ObservableObject {
             return
         }
         
-        // 生成示例歌词（用于演示）
-        currentLyrics = generateSampleLyrics(for: song)
-        if let lyrics = currentLyrics {
-            addLyrics(lyrics)
-            print("✅ 生成示例歌词: \(song.title)")
+        // 尝试在线下载歌词
+        downloadLyricsOnline(for: song)
+    }
+    
+    // 重新加载歌词（强制刷新）
+    func reloadLyrics(for song: Song, forceOnlineDownload: Bool = false) {
+        if forceOnlineDownload {
+            // 强制在线下载
+            downloadLyricsOnline(for: song)
+        } else {
+            // 清除当前歌词，重新加载
+            currentLyrics = nil
+            loadLyrics(for: song)
+        }
+    }
+    
+    // 在线下载歌词
+    private func downloadLyricsOnline(for song: Song) {
+        print("🔍 开始在线搜索歌词: \(song.artist) - \(song.title)")
+        
+        downloadService.downloadLyrics(for: song) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let lyrics):
+                    self?.currentLyrics = lyrics
+                    self?.addLyrics(lyrics)
+                    print("✅ 在线歌词下载成功: \(song.title)")
+                case .failure(let error):
+                    print("❌ 在线歌词下载失败: \(error.localizedDescription)")
+                    // 下载失败时保持无歌词状态
+                    self?.currentLyrics = nil
+                }
+            }
         }
     }
     
@@ -238,30 +267,7 @@ class LyricsManager: ObservableObject {
         return String(line[startIndex..<endIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
-    // 生成示例歌词（用于演示）
-    private func generateSampleLyrics(for song: Song) -> Lyrics? {
-        let sampleLines = [
-            LyricLine(timeStamp: 0.0, text: "♪ 音乐开始 ♪"),
-            LyricLine(timeStamp: 5.0, text: "这是一首美妙的歌曲"),
-            LyricLine(timeStamp: 10.0, text: "让我们一起聆听"),
-            LyricLine(timeStamp: 15.0, text: "感受音乐的魅力"),
-            LyricLine(timeStamp: 20.0, text: "每一个音符都充满情感"),
-            LyricLine(timeStamp: 25.0, text: "旋律在心中回响"),
-            LyricLine(timeStamp: 30.0, text: "这就是音乐的力量"),
-            LyricLine(timeStamp: 35.0, text: "♪ 演奏中... ♪"),
-            LyricLine(timeStamp: 45.0, text: "感谢您使用 mPlayer"),
-            LyricLine(timeStamp: 50.0, text: "享受您的音乐时光")
-        ]
-        
-        return Lyrics(
-            songId: song.id,
-            title: song.title,
-            artist: song.artist,
-            album: song.album,
-            lines: sampleLines,
-            source: .manual
-        )
-    }
+
     
     // MARK: - 歌词同步
     
