@@ -8,13 +8,22 @@ struct MiniPlayerView: View {
     var body: some View {
         HStack(spacing: 12) {
             // 专辑封面
-            RoundedRectangle(cornerRadius: 8)
-                .fill(MusicConstants.grayDark)
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Image(systemName: "music.note")
-                        .foregroundColor(MusicConstants.grayMedium)
+            if let currentSong = musicPlayer.currentSong {
+                EnhancedAsyncArtworkView(
+                    song: currentSong,
+                    size: .small,
+                    style: .rounded,
+                    useThumbnail: true
                 )
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(MusicConstants.grayDark)
+                    .frame(width: 50, height: 50)
+                    .overlay(
+                        Image(systemName: "music.note")
+                            .foregroundColor(MusicConstants.grayMedium)
+                    )
+            }
             
             // 歌曲信息
             VStack(alignment: .leading, spacing: 2) {
@@ -112,22 +121,11 @@ struct ExpandedPlayerView: View {
                     }
                     
                     Spacer()
-                    
-                    Button(action: {
-                        lyricsManager.toggleLyricsVisibility()
-                    }) {
-                        Image(systemName: lyricsManager.hasLyrics(for: musicPlayer.currentSong?.id ?? UUID()) ? "text.quote.fill" : "text.quote")
-                            .font(.title2)
-                            .foregroundColor(lyricsManager.hasLyrics(for: musicPlayer.currentSong?.id ?? UUID()) ? MusicConstants.primaryColor : MusicConstants.grayMedium)
-                            .frame(width: 44, height: 44)
-                            .background(Color.clear)
-                            .contentShape(Rectangle())
-                    }
                 }
                 .padding(.horizontal)
-                .padding(.top, 20)
+                .padding(.top, 5)
                 
-                // 标签页切换 - 移到安全区域内
+                // 标签页切换
                 HStack(spacing: 0) {
                     ForEach(PlayerTab.allCases, id: \.self) { tab in
                         Button(action: {
@@ -143,70 +141,89 @@ struct ExpandedPlayerView: View {
                             }
                             .foregroundColor(selectedTab == tab ? MusicConstants.primaryColor : MusicConstants.grayMedium)
                             .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 1)
                         }
                     }
                 }
                 .background(MusicConstants.grayDark.opacity(0.5))
                 .cornerRadius(20)
-                .padding(.top, 16)
+                .padding(.top, 1)
                 
                 // 主要内容区域
                 TabView(selection: $selectedTab) {
                     // 专辑封面页面
-                    VStack(spacing: 24) {
+                    VStack(spacing: 0) {
                         Spacer()
-                            .frame(minHeight: 20, maxHeight: 40)
                         
-                        ZStack {
-                            Circle()
-                                .fill(MusicConstants.grayDark)
-                                .frame(width: min(geometry.size.width * 0.75, 300), height: min(geometry.size.width * 0.75, 300))
-                            
-                            // 旋转动画
-                            Image(systemName: "music.note")
-                                .font(.system(size: 80))
-                                .foregroundColor(MusicConstants.grayMedium)
-                                .rotationEffect(.degrees(musicPlayer.playbackState == .playing ? 360 : 0))
-                                .animation(
-                                    musicPlayer.playbackState == .playing ?
-                                    Animation.linear(duration: 20).repeatForever(autoreverses: false) :
-                                    .default,
-                                    value: musicPlayer.playbackState
-                                )
-                            
-                            // 中心圆点
-                            Circle()
-                                .fill(MusicConstants.darkBackground)
-                                .frame(width: 20, height: 20)
-                                .overlay(
+                        VStack(spacing: 5) {
+                            // 专辑封面
+                            ZStack {
+                                // 专辑封面背景
+                                if let currentSong = musicPlayer.currentSong {
+                                    EnhancedAsyncArtworkView(
+                                        song: currentSong,
+                                        size: .custom(min(geometry.size.width * 0.75, 300)),
+                                        style: .circle,
+                                        showDownloadButton: false
+                                    )
+                                    .rotationEffect(.degrees(musicPlayer.playbackState == .playing ? 360 : 0))
+                                    .animation(
+                                        musicPlayer.playbackState == .playing ?
+                                        Animation.linear(duration: 20).repeatForever(autoreverses: false) :
+                                        .default,
+                                        value: musicPlayer.playbackState
+                                    )
+                                } else {
                                     Circle()
-                                        .stroke(.white, lineWidth: 4)
-                                )
-                        }
-                        
-                        // 歌曲信息
-                        VStack(spacing: 8) {
-                            Text(musicPlayer.currentSong?.title ?? "")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
+                                        .fill(MusicConstants.grayDark)
+                                        .frame(width: min(geometry.size.width * 0.75, 300), height: min(geometry.size.width * 0.75, 300))
+                                    
+                                    // 旋转动画
+                                    Image(systemName: "music.note")
+                                        .font(.system(size: 80))
+                                        .foregroundColor(MusicConstants.grayMedium)
+                                        .rotationEffect(.degrees(musicPlayer.playbackState == .playing ? 360 : 0))
+                                        .animation(
+                                            musicPlayer.playbackState == .playing ?
+                                            Animation.linear(duration: 20).repeatForever(autoreverses: false) :
+                                            .default,
+                                            value: musicPlayer.playbackState
+                                        )
+                                }
+                                
+                                // 中心圆点
+                                Circle()
+                                    .fill(MusicConstants.darkBackground)
+                                    .frame(width: 20, height: 20)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(.white, lineWidth: 4)
+                                    )
+                            }
                             
-                            Text(musicPlayer.currentSong?.artist ?? "")
-                                .font(.body)
-                                .foregroundColor(MusicConstants.grayMedium)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(1)
+                            // 歌曲信息
+                            VStack(spacing: 8) {
+                                Text(musicPlayer.currentSong?.title ?? "")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(3)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                
+                                Text(musicPlayer.currentSong?.artist ?? "")
+                                    .font(.body)
+                                    .foregroundColor(MusicConstants.grayMedium)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 10)
+                            
+                            // 迷你歌词显示
+                            MiniLyricsView()
                         }
-                        .padding(.horizontal, 20)
-                        
-                        // 迷你歌词显示
-                        MiniLyricsView()
                         
                         Spacer()
-                            .frame(minHeight: 20, maxHeight: 30)
                     }
                     .tag(PlayerTab.artwork)
                     
@@ -223,8 +240,8 @@ struct ExpandedPlayerView: View {
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 
-                // 播放进度
-                VStack(spacing: 16) {
+                // 播放进度和控制区域
+                VStack(spacing: 12) {
                     // 进度条
                     VStack(spacing: 8) {
                         HStack {
@@ -254,7 +271,7 @@ struct ExpandedPlayerView: View {
                     }
                     
                     // 播放控制按钮
-                    HStack(spacing: 40) {
+                    HStack(spacing: 32) {
                         Button(action: {
                             musicPlayer.toggleShuffle()
                         }) {
@@ -277,7 +294,7 @@ struct ExpandedPlayerView: View {
                             Image(systemName: musicPlayer.playbackState == .playing ? "pause.fill" : "play.fill")
                                 .font(.title)
                                 .foregroundColor(.white)
-                                .frame(width: 60, height: 60)
+                                .frame(width: 50, height: 50)
                                 .background(MusicConstants.primaryColor)
                                 .clipShape(Circle())
                         }
@@ -302,7 +319,7 @@ struct ExpandedPlayerView: View {
                 .padding(.horizontal, 32)
                 
                 // 底部附加功能
-                VStack(spacing: 16) {
+                VStack(spacing: 8) {
                     // 功能按钮
                     HStack(spacing: 40) {
                         Button(action: {
@@ -317,12 +334,6 @@ struct ExpandedPlayerView: View {
                             Image(systemName: musicPlayer.currentSong?.isFavorite == true ? "heart.fill" : "heart")
                                 .font(.title2)
                                 .foregroundColor(musicPlayer.currentSong?.isFavorite == true ? MusicConstants.primaryColor : MusicConstants.grayMedium)
-                        }
-                        
-                        Button(action: {}) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.title2)
-                                .foregroundColor(MusicConstants.grayMedium)
                         }
                         
                         Button(action: {}) {
@@ -350,7 +361,7 @@ struct ExpandedPlayerView: View {
                     }
                     .padding(.horizontal, 32)
                 }
-                .padding(.bottom, 30)
+                .padding(.bottom, 40)
             }
         }
         .background(MusicConstants.darkBackground)
